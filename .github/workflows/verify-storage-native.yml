@@ -1,0 +1,44 @@
+name: Native storage checker regression
+on:
+  push:
+    branches: [verify/storage-implicit-mtime-20261102]
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: 1.27.3
+          cache: false
+      - name: Native race, overlay fault injection, compatibility, vet and build
+        env:
+          EXPECTED_ARCH: ${{ matrix.arch }}
+          STORAGE_BASE: 87857644edbbe6a949062aa74813d4d90109241f
+        run: python3 validation/verify-native.py
+      - name: Preserve native evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: storage-checker-native-${{ matrix.arch }}
+          path: |
+            native-evidence/*.json
+            native-evidence/*.jsonl
+            native-evidence/*.stderr
+            native-evidence/*.txt
+          if-no-files-found: error
+          retention-days: 90
