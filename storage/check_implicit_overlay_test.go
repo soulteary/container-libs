@@ -49,8 +49,8 @@ func TestCheckImplicitOverlay(t *testing.T) {
 		return layer.ID
 	}
 	base := add("", entry{"etc/", "", tar.TypeDir}, entry{"etc/explicit/", "", tar.TypeDir}, entry{"etc/explicit/file", "base", tar.TypeReg})
-	implicit := add(base, entry{"etc/nested/payload", "payload", tar.TypeReg})
-	add(implicit, entry{"var/health", "ok", tar.TypeReg})
+	implicit := add(base, entry{"etc/", "", tar.TypeDir}, entry{"etc/nested/", "", tar.TypeDir}, entry{"etc/nested/payload", "payload", tar.TypeReg})
+	add(implicit, entry{"var/", "", tar.TypeDir}, entry{"var/health", "ok", tar.TypeReg})
 	check := func() *CheckReport { r, err := store.Check(CheckEverything()); require.NoError(t, err); return &r }
 	clean := func() {
 		r := check()
@@ -63,6 +63,8 @@ func TestCheckImplicitOverlay(t *testing.T) {
 	dir := filepath.Join(store.GraphRoot(), "overlay", implicit, "diff", "etc")
 	nested := filepath.Join(dir, "nested")
 	file := filepath.Join(nested, "payload")
+	nestedInfo, err := os.Stat(nested)
+	require.NoError(t, err)
 	explicit := filepath.Join(store.GraphRoot(), "overlay", base, "diff", "etc", "explicit")
 	fileBytes, err := os.ReadFile(file)
 	require.NoError(t, err)
@@ -94,9 +96,9 @@ func TestCheckImplicitOverlay(t *testing.T) {
 		{"explicit directory mtime", func() {
 			require.NoError(t, os.Chtimes(explicit, explicitInfo.ModTime(), explicitInfo.ModTime().Add(time.Hour)))
 		}, func() { require.NoError(t, os.Chtimes(explicit, explicitInfo.ModTime(), explicitInfo.ModTime())) }},
-		{"implicit directory mode", func() { require.NoError(t, os.Chmod(dir, 0o700)) }, func() { require.NoError(t, os.Chmod(dir, dirInfo.Mode().Perm())) }},
-		{"implicit directory uid", func() { require.NoError(t, os.Chown(dir, 123, 0)) }, func() { require.NoError(t, os.Chown(dir, 0, 0)) }},
-		{"implicit directory gid", func() { require.NoError(t, os.Chown(dir, 0, 123)) }, func() { require.NoError(t, os.Chown(dir, 0, 0)) }},
+		{"directory mode", func() { require.NoError(t, os.Chmod(dir, 0o700)) }, func() { require.NoError(t, os.Chmod(dir, dirInfo.Mode().Perm())) }},
+		{"directory uid", func() { require.NoError(t, os.Chown(dir, 123, 0)) }, func() { require.NoError(t, os.Chown(dir, 0, 0)) }},
+		{"directory gid", func() { require.NoError(t, os.Chown(dir, 0, 123)) }, func() { require.NoError(t, os.Chown(dir, 0, 0)) }},
 		{"file mode", func() { require.NoError(t, os.Chmod(file, 0o600)) }, func() { require.NoError(t, os.Chmod(file, fileInfo.Mode().Perm())) }},
 		{"unexpected file", func() {
 			require.NoError(t, os.WriteFile(filepath.Join(dir, "unexpected"), []byte("unexpected"), 0o600))
@@ -119,6 +121,39 @@ func TestCheckImplicitOverlay(t *testing.T) {
 			require.NotEmpty(t, r.Layers[implicit], "damaged layer must be reported")
 			require.NotEmpty(t, r.Images, "dependent images must be reported")
 		})
+		require.NoError(t, os.Chtimes(dir, dirInfo.ModTime(), dirInfo.ModTime()))
+		require.NoError(t, os.Chtimes(nested, nestedInfo.ModTime(), nestedInfo.ModTime()))
 		clean()
 	}
+}
+
+// Omitted metadata must not turn later directory timestamp changes into a clean report.
+func TestCheckImplicitDirectoryTimeRemainsFlagged(t *testing.T) {
+	reexec.Init()
+	require.Equal(t, 0, os.Geteuid())
+	root := t.TempDir()
+	store, err := GetStore(StoreOptions{GraphRoot: filepath.Join(root, "graph"), RunRoot: filepath.Join(root, "run"), GraphDriverName: "overlay", GraphDriverOptions: []string{"overlay.mountopt=nodev"}})
+	require.NoError(t, err)
+	t.Cleanup(func() { _, err := store.Shutdown(true); require.NoError(t, err) })
+	add := func(parent string, header *tar.Header) string {
+		var buf bytes.Buffer
+		tw := tar.NewWriter(&buf)
+		require.NoError(t, tw.WriteHeader(header))
+		require.NoError(t, tw.Close())
+		layer, _, err := store.PutLayer("", parent, nil, "", false, nil, &buf)
+		require.NoError(t, err)
+		_, err = store.CreateImage("", nil, layer.ID, "", nil)
+		require.NoError(t, err)
+		return layer.ID
+	}
+	base := add("", &tar.Header{Name: "etc/", Typeflag: tar.TypeDir, Mode: 0o755, ModTime: time.Unix(1000000000, 0)})
+	layer := add(base, &tar.Header{Name: "etc/empty", Typeflag: tar.TypeReg, Mode: 0o755, ModTime: time.Unix(1000000000, 0)})
+	directory := filepath.Join(store.GraphRoot(), "overlay", layer, "diff", "etc")
+	info, err := os.Stat(directory)
+	require.NoError(t, err)
+	require.NoError(t, os.Chtimes(directory, info.ModTime(), info.ModTime().Add(time.Hour)))
+	report, err := store.Check(CheckEverything())
+	require.NoError(t, err)
+	require.NotEmpty(t, report.Layers[layer], "post-import directory mtime change must remain visible")
+	require.NotEmpty(t, report.Images, "dependent image must remain flagged")
 }

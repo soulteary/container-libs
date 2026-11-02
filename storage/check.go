@@ -828,7 +828,7 @@ func compareFileInfo(a, b checkFileInfo, idmap *idtools.IDMappings, ignore check
 	if (os.ModeType|os.ModePerm)&a.mode != (os.ModeType|os.ModePerm)&b.mode && !ignore.permissions {
 		comparison = append(comparison, fmt.Sprintf("mode:%04o￫%04o", a.mode, b.mode))
 	}
-	if a.mtime != b.mtime && !a.directoryMtimeUnspecified && !ignore.timestamps {
+	if a.mtime != b.mtime && !ignore.timestamps {
 		comparison = append(comparison, fmt.Sprintf("mtime:0x%x￫0x%x", a.mtime, b.mtime))
 	}
 	return strings.Join(comparison, ",")
@@ -836,14 +836,11 @@ func compareFileInfo(a, b checkFileInfo, idmap *idtools.IDMappings, ignore check
 
 // checkFileInfo is what we care about for files
 type checkFileInfo struct {
-	// A changeset without a parent directory header does not specify the
-	// mtime produced when entries in that directory are added or removed.
-	directoryMtimeUnspecified bool
-	typeflag                  byte
-	uid, gid                  int
-	size                      int64
-	mode                      os.FileMode
-	mtime                     int64 // unix-style whole seconds
+	typeflag byte
+	uid, gid int
+	size     int64
+	mode     os.FileMode
+	mtime    int64 // unix-style whole seconds
 }
 
 // checkDirectory is a node in a filesystem record, possibly the top
@@ -1016,43 +1013,9 @@ func (c *checkDirectory) header(hdr *tar.Header) {
 	}
 }
 
-// directoryAt returns an existing directory without creating implicit entries.
-func (c *checkDirectory) directoryAt(name string) *checkDirectory {
-	for component := range strings.SplitSeq(path.Clean(name), "/") {
-		if component == "." || component == "" {
-			continue
-		}
-		if c == nil {
-			return nil
-		}
-		c = c.directory[component]
-	}
-	return c
-}
-
 // headers updates a checkDirectory using information from the passed-in header slice
 func (c *checkDirectory) headers(hdrs []*tar.Header) {
 	hdrs = slices.Clone(hdrs)
-	explicitDirectories := make(map[string]bool)
-	modifiedParents := make(map[string]bool)
-	for _, hdr := range hdrs {
-		name := path.Clean(hdr.Name)
-		if hdr.Typeflag == tar.TypeXGlobalHeader {
-			continue
-		}
-		if hdr.Typeflag == tar.TypeDir {
-			explicitDirectories[name] = true
-		}
-		parent := path.Dir(name)
-		modifiedParents[parent] = true
-		// Overlay import materializes implicit ancestors in the new diff,
-		// even when the merged parent directory already existed. Their
-		// import-time mtime is not specified by this changeset.
-		for parent != "." && parent != "/" {
-			parent = path.Dir(parent)
-			modifiedParents[parent] = true
-		}
-	}
 	// sort the headers from the diff to ensure that whiteouts appear
 	// before content when they both appear in the same directory, per
 	// https://github.com/opencontainers/image-spec/blob/main/layer.md#whiteouts
@@ -1079,13 +1042,6 @@ func (c *checkDirectory) headers(hdrs []*tar.Header) {
 	})
 	for _, hdr := range hdrs {
 		c.header(hdr)
-	}
-	for name := range modifiedParents {
-		if !explicitDirectories[name] {
-			if directory := c.directoryAt(name); directory != nil {
-				directory.directoryMtimeUnspecified = true
-			}
-		}
 	}
 }
 
