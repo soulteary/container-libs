@@ -30,7 +30,7 @@ subprocess.run(sudo+[go,'vet','-tags','exclude_graphdriver_btrfs','.'],cwd=curre
 subprocess.run(sudo+[go,'build','-tags','exclude_graphdriver_btrfs','-o',str(out/'containers-storage'),'./cmd/containers-storage'],cwd=current,check=True)
 (out/'native-elf.txt').write_text(subprocess.check_output(['file',str(out/'containers-storage')],text=True))
 # Verify the deployed dependency line separately from latest upstream.
-download=json.loads(subprocess.check_output([go,'mod','download','-json','go.podman.io/storage@v1.62.0'],cwd='/tmp',env=dict(env,GOWORK='off'),text=True));old=repo/'compat-v162';shutil.copytree(download['Dir'],old)
+download=json.loads(subprocess.check_output([go,'mod','download','-json','go.podman.io/storage@v1.62.0'],cwd='/tmp',env=dict(env,GOWORK='off'),text=True));old=repo/'compat-v162';shutil.copytree(download['Dir'],old);old.chmod(0o755)
 for p in old.rglob('*'):
  if p.is_dir():p.chmod(0o755)
  elif p.is_file():p.chmod(0o644)

@@ -1018,7 +1018,7 @@ func (c *checkDirectory) header(hdr *tar.Header) {
 
 // directoryAt returns an existing directory without creating implicit entries.
 func (c *checkDirectory) directoryAt(name string) *checkDirectory {
-	for _, component := range strings.Split(path.Clean(name), "/") {
+	for component := range strings.SplitSeq(path.Clean(name), "/") {
 		if component == "." || component == "" {
 			continue
 		}
