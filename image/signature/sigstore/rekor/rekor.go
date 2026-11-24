@@ -111,9 +111,8 @@ func (r *rekorClient) uploadEntry(ctx context.Context, proposedEntry rekorPropos
 			logrus.Debugf("CreateLogEntry reported a conflict, location = %s", location)
 			// We might be able to just GET the returned Location, but let’s use the formal API method.
 			// OTOH that requires us to hard-code the URI structure…
-			uuidDelimiter := strings.LastIndexByte(location, '/')
-			if uuidDelimiter != -1 { // Otherwise the URI is unexpected, and fall through to the bottom
-				uuid := location[uuidDelimiter+1:]
+			_, uuid, found := strings.CutLast(location, "/")
+			if found { // Otherwise the URI is unexpected, and fall through to the bottom
 				logrus.Debugf("Calling Rekor's NewGetLogEntryByUUIDParamsWithContext")
 				resp2, err := r.getLogEntryByUUID(ctx, uuid)
 				if err != nil {
