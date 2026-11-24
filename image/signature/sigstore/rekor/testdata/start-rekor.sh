@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Script to run a local rekor server, setup based on
-# https://github.com/sigstore/rekor/blob/main/docker-compose.yml
+# https://github.com/sigstore/rekor/blob/v1.6.5/docker-compose.yml
 # Required for Test_rekorUploadKeyOrCert unit test so it can run
 # against a real server.
 # set REKOR_SERVER_URL="http://127.0.0.1:3000"
@@ -10,10 +10,10 @@ set -e
 
 SUFFIX=${1:-default}
 
-REKOR_IMAGE=ghcr.io/sigstore/rekor/rekor-server:v1.3.10
-TRILLIAN_SIGNER_IMAGE=ghcr.io/sigstore/rekor/trillian_log_signer:v1.3.4
-TRILLIAN_SERVER_IMAGE=ghcr.io/sigstore/rekor/trillian_log_server:v1.3.4
-MYSQL_IMAGE=gcr.io/trillian-opensource-ci/db_server:v1.7.2
+REKOR_IMAGE=ghcr.io/sigstore/rekor/rekor-server:v1.6.5@sha256:29ee6c1e9393760a685c84edd8d931afd35ebfe0b99367ff5447ef3d4d335090
+TRILLIAN_SIGNER_IMAGE=ghcr.io/sigstore/scaffolding/trillian_log_signer:v1.8.0@sha256:7932dc61c586878d3d92bd6e14551e358a9d6dfc95f4ec5af2f49eea23d7d942
+TRILLIAN_SERVER_IMAGE=ghcr.io/sigstore/scaffolding/trillian_log_server:v1.8.0@sha256:13ca51c72694310c6d8d24de54a679fbab00e31764534ca8b7ed2a5004d5ef07
+MYSQL_IMAGE=gcr.io/trillian-opensource-ci/db_server:v1.8.0@sha256:0bfefa479e0d16f36b6e33f988ffa0ddbe0c9ce15d44675f1e54ef8e633d948a
 
 POD_NAME=rekor-pod-$SUFFIX
 
@@ -59,7 +59,7 @@ podman run -d --pod $POD_NAME --name rekor-trillian-server-$SUFFIX \
     $TRILLIAN_SERVER_IMAGE \
     --quota_system=noop \
     --storage_system=mysql \
-    --mysql_uri="test:zaphod@tcp(127.0.0.1:3306)/test" \
+    --mysql_uri="test:zaphod@tcp(127.0.0.1:3306)/test?parseTime=true&interpolateParams=true" \
     --rpc_endpoint=0.0.0.0:8090 \
     --http_endpoint=0.0.0.0:8091 \
     --alsologtostderr
@@ -68,7 +68,7 @@ podman run -d --pod $POD_NAME --name rekor-trillian-signer-$SUFFIX \
     $TRILLIAN_SIGNER_IMAGE \
     --quota_system=noop \
     --storage_system=mysql \
-    --mysql_uri="test:zaphod@tcp(127.0.0.1:3306)/test" \
+    --mysql_uri="test:zaphod@tcp(127.0.0.1:3306)/test?parseTime=true&interpolateParams=true" \
     --rpc_endpoint=0.0.0.0:8190 \
     --http_endpoint=0.0.0.0:8191 \
     --force_master \
@@ -86,6 +86,5 @@ podman run -d --pod $POD_NAME --name rekor-server-$SUFFIX \
     --enable_retrieve_api=false \
     --enable_attestation_storage \
     --attestation_storage_bucket="file:///var/run/attestations" \
-    --enable_stable_checkpoint \
     --search_index.storage_provider=mysql \
-    --search_index.mysql.dsn="test:zaphod@tcp(127.0.0.1:3306)/test"
+    --search_index.mysql.dsn="test:zaphod@tcp(127.0.0.1:3306)/test?parseTime=true&interpolateParams=true"
