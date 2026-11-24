@@ -132,7 +132,7 @@ run_image() {
 
     # start custom rekor which is needed by the tests
     $GOSRC/image/signature/sigstore/rekor/testdata/start-rekor.sh ci
-    make test BUILDTAGS='$BUILDTAGS' TESTFLAGS=-v REKOR_SERVER_URL='http://127.0.0.1:3000'
+    make test "BUILDTAGS=$BUILDTAGS" TESTFLAGS=-v REKOR_SERVER_URL='http://127.0.0.1:3000'
 }
 
 run_image_skopeo() {
