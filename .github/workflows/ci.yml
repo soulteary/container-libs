@@ -60,7 +60,8 @@ jobs:
             driver: overlay-transient
     uses: $/.github/workflows/lima.yml
     with:
-      runner: cncf-ubuntu-4-16-x86
+      # Use the public fork runner; upstream keeps its CNCF runner.
+      runner: ${{ github.repository == 'soulteary/container-libs' && 'ubuntu-26.04' || 'cncf-ubuntu-4-16-x86' }}
       module: storage
       distro: ${{ matrix.distro }}
       variant: ${{ matrix.driver }}
@@ -127,7 +128,7 @@ jobs:
         module: [image, image-skopeo]
     uses: $/.github/workflows/lima.yml
     with:
-      runner: cncf-ubuntu-4-16-x86
+      runner: ${{ github.repository == 'soulteary/container-libs' && 'ubuntu-26.04' || 'cncf-ubuntu-4-16-x86' }}
       module: ${{ matrix.module }}
       distro: fedora-current
       variant: ${{ matrix.variant }}
@@ -142,7 +143,7 @@ jobs:
     name: "common fedora-current"
     uses: $/.github/workflows/lima.yml
     with:
-      runner: cncf-ubuntu-4-16-x86
+      runner: ${{ github.repository == 'soulteary/container-libs' && 'ubuntu-26.04' || 'cncf-ubuntu-4-16-x86' }}
       module: common
       distro: fedora-current
       timeout: 20
