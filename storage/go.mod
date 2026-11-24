@@ -11,13 +11,13 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/google/go-intervals v0.0.2
 	github.com/json-iterator/go v1.1.12
-	github.com/klauspost/compress v1.20.3
+	github.com/klauspost/compress v1.20.5
 	github.com/klauspost/pgzip v1.3.0
-	github.com/mattn/go-shellwords v1.0.16
+	github.com/mattn/go-shellwords v1.0.17
 	github.com/mistifyio/go-zfs/v4 v4.0.0
 	github.com/moby/sys/capability v0.5.0
 	github.com/moby/sys/mountinfo v0.7.3
-	github.com/moby/sys/user v0.5.0
+	github.com/moby/sys/user v0.5.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/runtime-spec v1.3.0
 	github.com/opencontainers/selinux v1.15.1
@@ -27,14 +27,14 @@ require (
 	github.com/ulikunitz/xz v0.5.17
 	github.com/varlink/go v0.4.1-0.20261015173642-c935be0c53f7
 	github.com/vbatts/tar-split v0.12.3
-	golang.org/x/sync v0.24.0
-	golang.org/x/sys v0.49.0
+	golang.org/x/sync v0.25.0
+	golang.org/x/sys v0.50.0
 )
 
 require (
-	cyphar.com/go-pathrs v0.2.5 // indirect
+	cyphar.com/go-pathrs v0.2.6 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	go.yaml.in/yaml/v3 v3.0.6 // indirect
 )

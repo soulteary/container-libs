@@ -44,7 +44,7 @@ jobs:
       - uses: lima-vm/lima-actions/setup@55627e31b78637bf254a8b2a14da8ea7d12564e5 # v1.1.0
         id: lima
         with:
-          version: v2.1.1
+          version: v2.3.0
 
       # NOTE, we are not using a cache here as documented in the lima action.
       # This is because our VM images are above 5GB and the total github limit is 10 GB which means
